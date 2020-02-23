@@ -11,15 +11,17 @@ class MyContacts
         MyContacts();
         virtual ~MyContacts();
         void Add(Contact c);
+        void AddToTrie(TrieNode *root,string key,int C_index);
         void CreateNewContact(Contact c);
-        void Search(string query);
-        void Remove(Contact c);
+        set<int> Search(string query);
+        void Remove(set<int> C_indexes);
         void DisplayAll();
+        vector<Contact> GetAllContacts(){ return m_Contacts; }
 
     private:
         vector<Contact> m_Contacts;
-        TrieNode *TrieName;
-        TrieNode *TriePhone;
+        TrieNode *PreSufTree;
+        //TrieNode *TriePhone;
         SQLHelper sqlhelper;
 };
 

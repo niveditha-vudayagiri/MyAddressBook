@@ -30,6 +30,7 @@ string GetAddress() { return Address; }
 
 string GetEmail() { return Email;}
 
+void Clear() { PhoneNumber="", FirstName="", LastName="", Address="", Email="" ;}
 
 void display();
 
