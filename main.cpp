@@ -3,7 +3,6 @@
 #include "MyContacts.h"
 #include <windows.h>
 #include<iomanip>
-
 using namespace std;
 
 int main()
@@ -14,7 +13,7 @@ int main()
     MyContacts *Book;
     Contact *c;
     cout<<string(120, '-' )<<endl;
-    cout<<setw(120)<<"My Contacts"<<endl;
+    cout<<string(53,' ')<<"My Contacts"<<string(53,' ')<<endl;
     cout<<string(120, '-' )<<endl;
     Book=new MyContacts;
     while(1)
@@ -26,7 +25,7 @@ int main()
         cout<<"4. Delete Existing Contact"<<endl;
         cout<<"5. Refresh All"<<endl;
         cout<<"6. Exit"<<endl;
-        cout<<"\n Make your choice : ";
+        cout<<"\nMake your choice : ";
         cin>>ch;
 
         switch(ch)
@@ -42,16 +41,21 @@ int main()
             break;
 
         case 3:
-            cout<<"\n Enter the First Name: ";
+            cout<<"\nEnter the First Name: ";
             cin>>f_name;
-            cout<<"\n Enter the Last Name: ";
+            cout<<"\nEnter the Last Name: ";
             cin>>l_name;
-            cout<<"\n Enter the Phone Number: ";
-            cin>>phone;
-            cout<<"\n Enter the Address: ";
+            cout<<"\nEnter the Phone Number: ";
             cin.ignore();
+            getline(cin,phone);
+            //Validation of phone number
+            while(phone.length()!=10){
+                cout<<"\n Enter Valid Phone Number (You entered "<<phone.length()<<" nos) :";
+                getline(cin,phone);
+            }
+            cout<<"\nEnter the Address: ";
             getline(cin,addr);
-            cout<<"\n Enter the Email ID: ";
+            cout<<"\nEnter the Email ID: ";
             cin>>email;
             c=new Contact(f_name,phone,l_name,addr,email);
             Book->CreateNewContact(*c);
@@ -59,13 +63,16 @@ int main()
 
         case 4:
             {
-            cout<<"\n Enter the phone number or name to search..";
+            cout<<"\nEnter the phone number or name to search..";
             cin>>query;
             set<int> C_indexes=Book->Search(query);
-            cout<<"\n Do you want to delete all(y/n)?";
-            cin>>confirm;
-            if(confirm=='y')
-                Book->Remove(C_indexes);
+            if(C_indexes.size()>0)
+            {
+               cout<<"\nDo you want to delete all(y/n)?";
+                cin>>confirm;
+                if(confirm=='y')
+                    Book->Remove(C_indexes);
+            }
             }
             break;
 

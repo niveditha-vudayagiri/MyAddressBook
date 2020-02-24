@@ -17,17 +17,12 @@ using namespace std;
 TrieNode *getNode(void)
 {
     TrieNode *pNode = new TrieNode;
-
-    for (int i = 0; i < ALPHABET_SIZE; i++)
-        pNode->children[i] = NULL;
-
     return pNode;
 }
 
 MyContacts::MyContacts()
 {
     PreSufTree=getNode();
-    //TriePhone=getNode();
     //Get m_Contacts
     MYSQL_ROW row;
     MYSQL_RES *res;
@@ -65,10 +60,15 @@ void MyContacts::AddToTrie(TrieNode *root,string key,int C_index)
     TrieNode *curr=root;
     for(int c=0;c<key.length();c++)
     {
-        int index=(isalpha(key[c]))?CHAR_TO_INDEX(key[c]):INT_TO_INDEX(key[c]);
+        //Traverse through Hash-Map children
+        if(curr->children.find(key[c])==curr->children.end())
+            curr->children[key[c]]=getNode();
+        curr=curr->children[key[c]];
+
+        /*int index=(isalpha(key[c]))?CHAR_TO_INDEX(key[c]):INT_TO_INDEX(key[c]);
         if(!curr->children[index])
             curr->children[index]=getNode();
-        curr=curr->children[index];
+        curr=curr->children[index];*/
         //Add to indices
         set<int> c_index=curr->c_index;
         c_index.insert(C_index);
@@ -82,56 +82,26 @@ void MyContacts::AddToTrie(TrieNode *root,string key,int C_index)
     }
 }
 
-/*void UpdateTrie(TrieNode *root,string key)
-{
-    TrieNode *curr=root;
-    for(int c=0;c<key.length();c++)
-    {
-        int index=(isalpha(key[c]))?CHAR_TO_INDEX(key[c]):INT_TO_INDEX(key[c]);
-        curr=curr->children[index];
-    }
-    curr->c_index=curr->c_index+1;
-    cout<<"Updating Trie for"<<key<<curr->c_index<<endl;
-}*/
-
-
-
 void MyContacts::CreateNewContact(Contact C)
 {
-    Add(C);
-    stringstream ss;
-    ss<<"INSERT INTO Contacts (FirstName,LastName,PhoneNumber,Address,Email) values ('"<<C.GetFirstName()
-    <<"','"<<C.GetLastName()<<"','"<<C.GetPhoneNumber()<<"','"<<C.GetAddress()<<"','"<<C.GetEmail()<<"')";
+    //Check if phone number already exist
+    if(Search(C.GetPhoneNumber()).size()==0)
+    {
+        Add(C);
+        stringstream ss;
+        ss<<"INSERT INTO Contacts (FirstName,LastName,PhoneNumber,Address,Email) values ('"<<C.GetFirstName()
+        <<"','"<<C.GetLastName()<<"','"<<C.GetPhoneNumber()<<"','"<<C.GetAddress()<<"','"<<C.GetEmail()<<"')";
 
-    sqlhelper.ExecuteQuery(ss.str());
+        sqlhelper.ExecuteQuery(ss.str());
+    }
+    else
+        cout<<"\n Phone number already exist"<<endl;
 }
 
 void MyContacts::Add(Contact C)
 {
     try{
     //Add to m_Contacts vector using Insertion Sort
-
-    /*int inserter=m_Contacts.size()-1;
-    if(m_Contacts.size()==0)
-        m_Contacts.push_back(C);
-    else
-    {
-        while(inserter>=0)
-        {
-        string s1=m_Contacts[inserter].GetFirstName()+m_Contacts[inserter].GetLastName();
-        string s2=C.GetFirstName()+C.GetLastName();
-        string p=m_Contacts[inserter].GetPhoneNumber();
-        if(isChrono(s1,s2))
-            {
-                UpdateTrie(TrieName,s1);
-                UpdateTrie(TriePhone,p);
-                inserter--;
-            }
-        else
-            break;
-        }
-    m_Contacts.insert(m_Contacts.begin()+inserter+1,1,C);
-    }*/
 
     m_Contacts.push_back(C);
 
@@ -160,17 +130,19 @@ void MyContacts::Add(Contact C)
 void MyContacts::DisplayAll()
 {
     std::vector<Contact>::iterator i;
-    cout<<left
+    int it=1;
+    cout<<endl<<left
+    <<setw(5)<<"S.No"
     <<setw(15)<<"First Name"
     <<setw(15)<<"Last Name"
-    <<setw(20)<<"Phone Number"
+    <<setw(15)<<"Phone Number"
     <<setw(40)<<"Address"
     <<setw(30)<<"Email";
     cout<<string(120, '-' )<<endl;
     for(i= m_Contacts.begin();i != m_Contacts.end();i++)
     {
         if((*i).GetPhoneNumber()!="")
-            (*i).display();
+            (*i).display(it++);
     }
 }
 
@@ -187,16 +159,14 @@ set<int> printAutoSuggestions(TrieNode* root, const string query)
 {
     TrieNode* pCrawl = root;
     set<int> C_indexes;
-    // Check if prefix is present and find the
-    // the node (of last level) with last character
-    // of given string.
-    int level;
-    int n = query.length();
+    int level,n = query.length();
     for (level = 0; level < n; level++)
     {
-        int index = (isalpha(query[level]))?CHAR_TO_INDEX(query[level]):INT_TO_INDEX(query[level]);
+        /*int index = (isalpha(query[level]))?CHAR_TO_INDEX(query[level]):INT_TO_INDEX(query[level]);
         if(pCrawl->children[index])
-            pCrawl = pCrawl->children[index];
+            pCrawl = pCrawl->children[index];*/
+        if(pCrawl->children.find(query[level])!=pCrawl->children.end())
+            pCrawl=pCrawl->children[query[level]];
         else
             return C_indexes;
     }
@@ -206,19 +176,20 @@ set<int> printAutoSuggestions(TrieNode* root, const string query)
 
 void RemoveIndexFromTrie(TrieNode *root,const string query,int index_to_del){
     TrieNode* pCrawl=root;
-    int level;
-    int n=query.length();
+    int level,n=query.length();
     for(level=0;level<n;level++)
     {
-        int index = (isalpha(query[level]))?CHAR_TO_INDEX(query[level]):INT_TO_INDEX(query[level]);
+        /*int index = (isalpha(query[level]))?CHAR_TO_INDEX(query[level]):INT_TO_INDEX(query[level]);
         if(pCrawl->children[index])
-            pCrawl = pCrawl->children[index];
+            pCrawl = pCrawl->children[index];*/
+        if(pCrawl->children.find(query[level])!=pCrawl->children.end())
+            pCrawl=pCrawl->children[query[level]];
 
         set<int> currIndexList=pCrawl->c_index;
         std::set<int>::iterator position = std::find(currIndexList.begin(), currIndexList.end(), index_to_del);
-        if (position != currIndexList.end()) // == myVector.end() means the element was not found
+        if (position != currIndexList.end())
             currIndexList.erase(position);
-        //pCrawl->c_index.erase(remove(pCrawl->c_index.begin(),pCrawl->c_index.end(),index),pCrawl->c_index.end());
+
         pCrawl->c_index=currIndexList;
     }
 }
@@ -237,12 +208,13 @@ set<int> MyContacts::Search(string query)
     set<int> C_indexes;
     //Search the TrieName and TriePhone to get indexes
 
-        C_indexes=printAutoSuggestions(PreSufTree,query);
-        cout<<"We have found "<<C_indexes.size()<<" results...."<<endl<<endl;
-        set<int>::iterator it;
-        for ( it = C_indexes.begin(); it != C_indexes.end(); it++)
-            if(m_Contacts[(*it)].GetPhoneNumber()!="")
-                m_Contacts[(*it)].display();
+    C_indexes=printAutoSuggestions(PreSufTree,query);
+    cout<<"We have found "<<C_indexes.size()<<" results...."<<endl<<endl;
+    set<int>::iterator it;
+    int in=1;
+    for ( it = C_indexes.begin(); it != C_indexes.end(); it++)
+        if(m_Contacts[(*it)].GetPhoneNumber()!="")
+                m_Contacts[(*it)].display(in++);
 
 
     cout<<endl;
@@ -260,7 +232,6 @@ void MyContacts::Remove(set<int> C_indices)
     string num_to_remove=m_Contacts[index_to_remove].GetPhoneNumber();
     //Remove from Trie
     RemoveIndexFromTrie(PreSufTree,name_to_remove,index_to_remove);
-    //RemoveIndexFromTrie(TriePhone,num_to_remove,index_to_remove);
 
     //Remove Contact from m_Contacts
     m_Contacts[index_to_remove].Clear();
@@ -272,5 +243,6 @@ void MyContacts::Remove(set<int> C_indices)
     sqlhelper.ExecuteQuery(ss.str());
     }
 }
+
 
 
